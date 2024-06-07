@@ -66,10 +66,25 @@ app.use(express.json())
 
 app.post('/verify', async (request, response) => {
   const { captchaValue } = request.body
-  const { data } = await axios.post(
-    `https://www.google.com/recaptcha/api/siteverify?secret=${SITE_SECRET}&response=${captchaValue}`,
-  )
-  response.send(data)
+
+  if (!captchaValue) {
+    return response.status(400).json({ success: false, message: 'No captcha value provided' })
+  }
+
+  try {
+    const { data } = await axios.post(
+      `https://www.google.com/recaptcha/api/siteverify?secret=${SITE_SECRET}&response=${captchaValue}`
+    )
+
+    if (!data.success) {
+      return response.status(400).json({ success: false, message: 'Captcha verification failed' })
+    }
+
+    return response.json({ success: true, message: 'Captcha verification succeeded' })
+  } catch (error) {
+    console.error('Error verifying captcha:', error)
+    return response.status(500).json({ success: false, message: 'Internal server error' })
+  }
 })
 
 app.listen(port, () => {
